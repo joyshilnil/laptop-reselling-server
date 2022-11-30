@@ -147,6 +147,20 @@ app.get('/users/sellers/:email', async (req, res) => {
 })
 
 
+app.get('/categoryname', async (req, res) => {
+  const query = {}
+  const result = await categorysCollecation.find(query).project({ id: 1, name:2 }).toArray();
+  res.send(result);
+})
+
+app.post('/categorys/:id', async (req, res) => {
+  const product = req.body;
+  const result = await categoryProductsCollecation.insertOne(product);
+  res.send(result);
+});
+
+
+
 
 
     console.log('Database Connected...')
