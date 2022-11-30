@@ -126,6 +126,27 @@ app.get('/jwt', async (req, res) => {
 
 
 
+app.get('/users', async (req, res) => {
+  const query = {};
+  const users = await usersCollecation.find(query).toArray();
+  res.send(users);
+});
+
+app.get('/users/admin/:email', async (req, res) => {
+  const email = req.params.email;
+  const query = { email }
+  const user = await usersCollecation.findOne(query);
+  res.send({ isAdmin: user?.role === 'admin' });
+})
+
+app.get('/users/sellers/:email', async (req, res) => {
+  const email = req.params.email;
+  const query = { email }
+  const user = await usersCollecation.findOne(query);
+  res.send({ isSellers: user?.role === 'Seller' });
+})
+
+
 
 
     console.log('Database Connected...')
