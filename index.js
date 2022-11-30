@@ -162,6 +162,12 @@ app.post('/categorys/:id', async (req, res) => {
 
 
 
+app.get('/categorys/:id', async (req, res) => {
+  const email = req.query.email;
+  const query = { email: email };
+  const categorys = await categoryProductsCollecation.find(query).toArray();
+  res.send(categorys);
+})
 
     console.log('Database Connected...')
   } finally {
