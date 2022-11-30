@@ -17,15 +17,46 @@ app.use(express.json())
 const uri = process.env.DB_URI
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
+
+
+
+function verifyJWT(req, res, next) {
+
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+      return res.status(401).send('unauthorized access');
+  }
+
+  const token = authHeader.split(' ')[1];
+
+  jwt.verify(token, process.env.TOKEN, function (err, decoded) {
+      if (err) {
+          return res.status(403).send({ message: 'forbidden access' })
+      }
+      req.decoded = decoded;
+      next();
+  })
+
+}
+
+
+
+
+
 async function run() {
   try {
     const categorysCollecation = client.db('laptop').collection('categorys')   
     const categoryProductsCollecation = client.db('laptop').collection('categoryproducts')
+    const bookingsCollecation = client.db('laptop').collection('bookings')
+    const usersCollecation = client.db('laptop').collection('users')
+
+
 
     app.get('/categorys', async (req, res) => {
       const query = {};
       const categorys = await categorysCollecation.find(query).toArray();
       res.send(categorys);
+      // console.log(categorys);
   });
 
 
@@ -36,33 +67,65 @@ async function run() {
     res.send(category);
 })
 
+app.get('/bookings', verifyJWT, async (req, res) => {
+  const email = req.query.email;
+  const decodedEmail = req.decoded.email;
+
+  if (email !== decodedEmail) {
+      return res.status(403).send({ message: 'forbidden access' });
+  }
+
+
+  const query = { email: email };
+  const bookings = await bookingsCollecation.find(query).toArray();
+  res.send(bookings);
+})
+
+
+app.post('/bookings', async (req, res) => {
+  const booking = req.body;
+
+
+  const query = {
+    productId: booking.productId,
+}
+
+const alreadyBooked = await bookingsCollecation.find(query).toArray();
+
+if (alreadyBooked.length){
+    const message = 'This is product already book'
+    return res.send({acknowledged: false, message})
+}
+
+  const result = await bookingsCollecation.insertOne(booking);
+  res.send(result);
+})
+
+
+
+app.post('/users', async (req, res) => {
+  const user = req.body;
+  const result = await usersCollecation.insertOne(user);
+  res.send(result);
+});
 
 
 
 
 
+app.get('/jwt', async (req, res) => {
+  const email = req.query.email;
+  const query = { email: email };
+  const user = await usersCollecation.findOne(query);
+  if (user) {
+      const token = jwt.sign({ email }, process.env.TOKEN, { expiresIn: '1d' })
+      return res.send({ accessToken: token });
+  }
+  res.status(403).send({ accessToken: '' })
+});
 
 
 
-
-
-    // const usersCollecation = client.db('laptop').collection('user')
-
-    // app.put('/user/:email', async (req, res) => {
-    //   const email = req.params.email
-    //   const user = req.body
-    //   const filter = { email: email }
-    //   const options = { upsert: true}
-    //   const updateDoc = {
-    //     $set: user,
-    //   }
-    //   const result = await usersCollecation.updateOne(filter, updateDoc, options)
-    //   console.log(result)
-
-    //   const token = jwt.sign(user, process.env.TOKEN, {
-    //     expiresIn: '1d',
-    //   })
-    // })
 
 
     console.log('Database Connected...')
